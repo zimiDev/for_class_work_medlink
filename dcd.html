@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareTrack Full Stack Architecture Documentation</title>
+  <meta name="description" content="Full stack architecture documentation for the CareTrack medical records management system, including frontend routes, backend APIs, data model, security model, and deployment notes.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --paper: #ffffff;
+      --ink: #152033;
+      --muted: #3f4b5d;
+      --line: #dce4ef;
+      --line-strong: #bdcada;
+      --brand: #077c91;
+      --brand-dark: #07596b;
+      --accent: #10a37f;
+      --warn: #a15c00;
+      --danger: #b42318;
+      --code-bg: #eef3f8;
+      --shadow: 0 16px 40px rgba(21, 32, 51, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.58;
+    }
+    a { color: var(--brand-dark); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code {
+      padding: 0.1rem 0.32rem;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--code-bg);
+      font-size: 0.92em;
+    }
+    pre {
+      overflow: auto;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .page {
+      display: grid;
+      grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+      gap: 26px;
+      width: min(1500px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 26px 0 56px;
+    }
+    header.hero {
+      grid-column: 1 / -1;
+      padding: 34px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ffffff 0%, #f4fbfc 54%, #eef8f5 100%);
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--brand);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, h4 { margin: 0; line-height: 1.18; letter-spacing: 0; }
+    h1 { max-width: 940px; font-size: clamp(2rem, 4vw, 4.2rem); }
+    h2 {
+      margin-bottom: 14px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--line);
+      font-size: 1.56rem;
+    }
+    h3 { margin-top: 24px; margin-bottom: 10px; font-size: 1.08rem; }
+    h4 { margin-top: 18px; margin-bottom: 8px; font-size: 0.98rem; }
+    p { margin: 0 0 12px; }
+    .hero p.summary {
+      max-width: 980px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 1.04rem;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .meta-card {
+      min-height: 94px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+    .meta-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .toc {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .toc strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--ink);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+    .toc a {
+      display: block;
+      padding: 6px 0;
+      border-top: 1px solid #eef2f7;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    main { min-width: 0; }
+    section {
+      margin-bottom: 24px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .note, .warning, .success {
+      margin: 14px 0;
+      padding: 13px 15px;
+      border-left: 4px solid var(--brand);
+      border-radius: 8px;
+      background: #f2fbfd;
+      color: #244052;
+    }
+    .warning { border-left-color: var(--warn); background: #fff7ed; color: #533708; }
+    .success { border-left-color: var(--accent); background: #f0fdf7; color: #164e3a; }
+    .danger { color: var(--danger); font-weight: 700; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 14px 0 4px;
+    }
+    .flow-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbfe;
+    }
+    .flow-card strong { display: block; margin-bottom: 4px; color: var(--brand-dark); }
+    table {
+      width: 100%;
+      margin: 12px 0 22px;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      font-size: 0.93rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #eef6f8;
+      color: #193449;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    tbody tr:nth-child(even) td { background: #fbfdff; }
+    ul { margin: 8px 0 18px 1.25rem; padding: 0; }
+    li { margin: 5px 0; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .pill {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f8fbfe;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .source { color: var(--muted); font-size: 0.84rem; }
+    .schema-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+    footer { grid-column: 1 / -1; padding: 18px; color: var(--muted); text-align: center; }
+    @media (max-width: 1080px) {
+      .page { display: block; }
+      .toc { position: static; margin-bottom: 18px; }
+      .meta-grid, .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      header.hero, section { padding: 18px; }
+      .meta-grid, .flow, .grid { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    @media print {
+      body { background: #ffffff; }
+      .page { display: block; width: 100%; padding: 0; }
+      .toc { display: none; }
+      header.hero, section { box-shadow: none; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <p class="eyebrow">CareTrack Architecture</p>
+      <h1>Full Stack Architecture Documentation</h1>
+      <p class="summary">
+        This document describes the CareTrack medical records management project as implemented in this repository:
+        a Vite React frontend, an Express REST API, JWT authentication, role-based authorization, seeded in-memory clinical data,
+        and the operational workflows for doctors, patients, diagnoses, schedules, and users.
+      </p>
+      <div class="meta-grid">
+        <div class="meta-card">
+          <strong>Generated</strong>
+          June 7, 2026
+        </div>
+        <div class="meta-card">
+          <strong>Application</strong>
+          CareTrack / Medora Pro MRMS
+        </div>
+        <div class="meta-card">
+          <strong>Primary Stack</strong>
+          React, Vite, Express, JWT
+        </div>
+        <div class="meta-card">
+          <strong>Data Layer</strong>
+          In-memory JavaScript arrays
+        </div>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="Table of contents">
+      <strong>Contents</strong>
+      <a href="#overview">1. Overview</a>
+      <a href="#system-map">2. System Map</a>
+      <a href="#runtime-topology">3. Runtime Topology</a>
+      <a href="#frontend">4. Frontend Architecture</a>
+      <a href="#backend">5. Backend Architecture</a>
+      <a href="#api">6. API Catalogue</a>
+      <a href="#data-model">7. Data Model</a>
+      <a href="#auth">8. Auth and Access</a>
+      <a href="#workflows">9. Core Workflows</a>
+      <a href="#validation">10. Validation and Errors</a>
+      <a href="#testing">11. Testing</a>
+      <a href="#deployment">12. Build and Deployment</a>
+      <a href="#risks">13. Architecture Notes</a>
+      <a href="#sources">14. Source File Map</a>
+    </nav>
+
+    <main>
+      <section id="overview">
+        <h2>1. Overview</h2>
+        <p>
+          CareTrack is a staff-only clinic management and medical records application. Users sign in with seeded staff accounts,
+          then work inside a protected dashboard where role determines which records can be viewed, created, updated, or deleted.
+          The UI brand text currently appears as <strong>Medora Pro</strong>, while package metadata and backend messages still use
+          <strong>CareTrack</strong>.
+        </p>
+        <div class="grid">
+          <div class="note">
+            <strong>Current implementation:</strong>
+            a React single-page app in <code>frontend/src</code> served by Vite and a CommonJS Express API in <code>backend/src</code>.
+          </div>
+          <div class="warning">
+            <strong>Persistence status:</strong>
+            the project does not currently connect to PostgreSQL, Firebase, or another durable store. Records live in module-level arrays
+            and reset when the backend process restarts.
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>Purpose</th>
+              <th>Main implementation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Login and session</td>
+              <td>Authenticate staff users and store a JWT in the browser.</td>
+              <td><code>LoginPage.jsx</code>, <code>authService.js</code>, <code>authController.js</code></td>
+            </tr>
+            <tr>
+              <td>Dashboard</td>
+              <td>Show counts, shift coverage, severity distribution, recent patients, and recent diagnoses.</td>
+              <td><code>DashboardPage.jsx</code>, <code>dashboardController.js</code></td>
+            </tr>
+            <tr>
+              <td>Doctor directory</td>
+              <td>Search, filter, profile, create, update, delete, CSV export, and shift schedule views.</td>
+              <td><code>DoctorsPage.jsx</code>, <code>SchedulePage.jsx</code>, <code>doctorController.js</code></td>
+            </tr>
+            <tr>
+              <td>Patient records</td>
+              <td>Register patients, assign doctors, view profile history, edit records, delete with diagnosis cascade.</td>
+              <td><code>PatientsPage.jsx</code>, <code>PatientProfilePage.jsx</code>, <code>patientController.js</code></td>
+            </tr>
+            <tr>
+              <td>Diagnosis tracking</td>
+              <td>Record ICD code, description, patient, severity, search and filter by severity.</td>
+              <td><code>DiagnosesPage.jsx</code>, <code>DiagnosisFormPage.jsx</code>, <code>diagnosisController.js</code></td>
+            </tr>
+            <tr>
+              <td>Localization</td>
+              <td>Switch UI strings between Uzbek and Russian, persisted in localStorage.</td>
+              <td><code>LanguageContext.jsx</code>, <code>MainLayout.jsx</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="system-map">
+        <h2>2. System Map</h2>
+        <div class="flow" aria-label="High level system flow">
+          <div class="flow-card">
+            <strong>Browser</strong>
+            React SPA, React Router, Tailwind-styled components, localStorage token and language preference.
+          </div>
+          <div class="flow-card">
+            <strong>Service Layer</strong>
+            Axios client with base URL, Authorization header injection, and 401 redirect handling.
+          </div>
+          <div class="flow-card">
+            <strong>Express API</strong>
+            Routes, JWT middleware, role middleware, controllers, pagination helpers, and centralized 500 handler.
+          </div>
+          <div class="flow-card">
+            <strong>Data Modules</strong>
+            Seeded arrays for users, doctors, patients, and diagnoses. Controllers mutate these arrays directly.
+          </div>
+        </div>
+        <pre><code>React page -&gt; service module -&gt; Axios /api request -&gt; Express route
+  -&gt; authMiddleware verifies Bearer token
+  -&gt; roleMiddleware checks allowed roles when required
+  -&gt; controller reads or mutates in-memory data
+  -&gt; JSON response returned to the SPA</code></pre>
+      </section>
+
+      <section id="runtime-topology">
+        <h2>3. Runtime Topology</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Runtime</th>
+              <th>Command</th>
+              <th>Default URL</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Backend API</td>
+              <td><code>cd backend &amp;&amp; npm run dev</code> or <code>npm start</code></td>
+              <td><code>http://localhost:5000/api</code></td>
+              <td>Port comes from <code>PORT</code>, defaulting to <code>5000</code>.</td>
+            </tr>
+            <tr>
+              <td>Frontend dev server</td>
+              <td><code>cd frontend &amp;&amp; npm run dev</code></td>
+              <td>Vite assigned local URL</td>
+              <td>Vite proxies <code>/api</code> requests to <code>http://localhost:5000</code>.</td>
+            </tr>
+            <tr>
+              <td>Frontend production build</td>
+              <td><code>cd frontend &amp;&amp; npm run build</code></td>
+              <td><code>frontend/dist</code></td>
+              <td>Static build uses <code>VITE_API_BASE_URL</code> when configured, otherwise <code>http://127.0.0.1:5000/api</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note">
+          <strong>Health check:</strong>
+          <code>GET /api/health</code> returns <code>{ status: "ok", message: "CareTrack API is running" }</code>.
+        </div>
+      </section>
+
+      <section id="frontend">
+        <h2>4. Frontend Architecture</h2>
+        <p>
+          The frontend is a Vite React application using React 19, React Router 7, Axios, Tailwind CSS, Vitest, and Testing Library.
+          <code>main.jsx</code> mounts <code>App.jsx</code>; <code>App.jsx</code> wraps the router in <code>LanguageProvider</code>
+          and <code>ToastProvider</code>.
+        </p>
+        <h3>Route tree</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Page</th>
+              <th>Protection</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/login</code></td><td><code>LoginPage</code></td><td>Public</td><td>Credential form and demo account shortcut buttons.</td></tr>
+            <tr><td><code>/</code></td><td><code>DashboardPage</code></td><td>Authenticated</td><td>Role-aware operational dashboard.</td></tr>
+            <tr><td><code>/doctors</code></td><td><code>DoctorsPage</code></td><td>Authenticated</td><td>Doctor directory with search, department filter, shift filter, pagination, CSV export for Admin.</td></tr>
+            <tr><td><code>/doctors/:id</code></td><td><code>DoctorProfilePage</code></td><td>Authenticated</td><td>Doctor profile plus assigned patients.</td></tr>
+            <tr><td><code>/doctors/new</code>, <code>/doctors/:id/edit</code></td><td><code>DoctorFormPage</code></td><td>Admin</td><td>Create or update doctor profile and clinician account.</td></tr>
+            <tr><td><code>/patients</code></td><td><code>PatientsPage</code></td><td>Authenticated</td><td>Patient table, search, age-group filter, pagination, CSV export for Admin.</td></tr>
+            <tr><td><code>/patients/new</code></td><td><code>PatientFormPage</code></td><td>Admin, Receptionist</td><td>Register patient.</td></tr>
+            <tr><td><code>/patients/:id</code></td><td><code>PatientProfilePage</code></td><td>Authenticated</td><td>Patient details, doctor details, diagnosis history.</td></tr>
+            <tr><td><code>/patients/:id/edit</code></td><td><code>PatientFormPage</code></td><td>Authenticated route, UI available to Admin, Clinician, Receptionist</td><td>Edit patient details.</td></tr>
+            <tr><td><code>/diagnoses</code></td><td><code>DiagnosesPage</code></td><td>Admin, Clinician</td><td>Diagnosis list, search, severity filter, pagination.</td></tr>
+            <tr><td><code>/diagnoses/new</code>, <code>/diagnoses/:id/edit</code></td><td><code>DiagnosisFormPage</code></td><td>Admin, Clinician</td><td>Create or update diagnosis records.</td></tr>
+            <tr><td><code>/users</code></td><td><code>UsersPage</code></td><td>Admin</td><td>Register new users through the auth register API.</td></tr>
+            <tr><td><code>/schedule</code></td><td><code>SchedulePage</code></td><td>Authenticated</td><td>Doctor shift schedule view.</td></tr>
+          </tbody>
+        </table>
+        <h3>Frontend modules</h3>
+        <ul>
+          <li><code>services/api.js</code> creates one Axios instance, attaches <code>Authorization: Bearer &lt;token&gt;</code>, and redirects to <code>/login</code> on non-auth 401 responses.</li>
+          <li><code>utils/auth.js</code> stores, removes, and decodes JWTs from localStorage. Role checks are client-side convenience only; backend middleware is the source of truth.</li>
+          <li><code>components/ProtectedRoute.jsx</code> redirects anonymous users and renders <code>AccessDenied</code> when the decoded role is not allowed.</li>
+          <li><code>components/DataTable.jsx</code>, <code>SearchBar.jsx</code>, <code>Pagination.jsx</code>, <code>StatCard.jsx</code>, and <code>Toast.jsx</code> provide reusable UI primitives.</li>
+          <li><code>i18n/LanguageContext.jsx</code> stores selected language under <code>caretrack.language</code> and exposes translation helpers for role, gender, severity, and shift labels.</li>
+        </ul>
+      </section>
+
+      <section id="backend">
+        <h2>5. Backend Architecture</h2>
+        <p>
+          The backend is an Express 5 API using CommonJS modules. <code>server.js</code> loads config, starts the HTTP server, and keeps the process alive for managed dev shells.
+          <code>app.js</code> applies CORS and JSON parsing, registers routes, exposes a health check, and defines a final error handler.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Files</th>
+              <th>Responsibility</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Config</td>
+              <td><code>backend/src/config/index.js</code></td>
+              <td>Loads <code>backend/.env</code>, exports <code>PORT</code> and <code>JWT_SECRET</code>.</td>
+            </tr>
+            <tr>
+              <td>Routes</td>
+              <td><code>backend/src/routes/*Routes.js</code></td>
+              <td>Map HTTP endpoints to middleware chains and controllers.</td>
+            </tr>
+            <tr>
+              <td>Middleware</td>
+              <td><code>authMiddleware.js</code>, <code>roleMiddleware.js</code></td>
+              <td>Verify JWTs, attach <code>req.user</code>, and restrict roles.</td>
+            </tr>
+            <tr>
+              <td>Controllers</td>
+              <td><code>backend/src/controllers/*.js</code></td>
+              <td>Implement CRUD, filtering, search, pagination, scoping, and aggregate dashboard logic.</td>
+            </tr>
+            <tr>
+              <td>Data</td>
+              <td><code>backend/src/data/*.js</code></td>
+              <td>Seed module-level arrays for users, doctors, patients, and diagnoses.</td>
+            </tr>
+            <tr>
+              <td>Helpers</td>
+              <td><code>backend/src/utils/helpers.js</code></td>
+              <td>Normalize pagination query params and response shape.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="api">
+        <h2>6. API Catalogue</h2>
+        <h3>Authentication</h3>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Public</td><td>Validates username and password, returns JWT and user summary.</td></tr>
+            <tr><td>POST</td><td><code>/api/auth/register</code></td><td>Admin</td><td>Creates a user with role <code>Admin</code>, <code>Clinician</code>, or <code>Receptionist</code>.</td></tr>
+          </tbody>
+        </table>
+        <h3>Dashboard</h3>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/dashboard/stats</code></td><td>Authenticated</td><td>Returns totals, shift stats, severity stats, recent patients, and recent diagnoses. Clinicians receive scoped totals.</td></tr>
+          </tbody>
+        </table>
+        <h3>Doctors</h3>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/doctors</code></td><td>Authenticated</td><td>Lists doctors with <code>search</code>, <code>department</code>, <code>shift</code>, <code>page</code>, and <code>limit</code>.</td></tr>
+            <tr><td>GET</td><td><code>/api/doctors/by-shift/:shift</code></td><td>Authenticated</td><td>Returns doctors exactly matching a shift.</td></tr>
+            <tr><td>GET</td><td><code>/api/doctors/:id</code></td><td>Authenticated</td><td>Returns one doctor plus assigned patients.</td></tr>
+            <tr><td>POST</td><td><code>/api/doctors</code></td><td>Admin</td><td>Creates a clinician user account and linked doctor profile.</td></tr>
+            <tr><td>PUT</td><td><code>/api/doctors/:id</code></td><td>Admin</td><td>Updates doctor profile fields.</td></tr>
+            <tr><td>DELETE</td><td><code>/api/doctors/:id</code></td><td>Admin</td><td>Deletes doctor and sets assigned patients' <code>doctor_id</code> to <code>null</code>.</td></tr>
+          </tbody>
+        </table>
+        <h3>Patients</h3>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/patients</code></td><td>Authenticated</td><td>Lists patients with <code>search</code>, <code>page</code>, and <code>limit</code>. Clinicians see only assigned patients.</td></tr>
+            <tr><td>GET</td><td><code>/api/patients/:id</code></td><td>Authenticated</td><td>Returns patient, doctor details, and diagnosis history. Clinicians are scoped to their assigned patients.</td></tr>
+            <tr><td>POST</td><td><code>/api/patients</code></td><td>Admin, Receptionist</td><td>Creates a patient and optionally assigns an existing doctor.</td></tr>
+            <tr><td>PUT</td><td><code>/api/patients/:id</code></td><td>Admin, Clinician, Receptionist</td><td>Updates patient demographics, contact details, address, and doctor assignment.</td></tr>
+            <tr><td>DELETE</td><td><code>/api/patients/:id</code></td><td>Admin</td><td>Deletes patient and cascades deletion of that patient's diagnoses.</td></tr>
+          </tbody>
+        </table>
+        <h3>Diagnoses</h3>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/diagnoses</code></td><td>Admin, Clinician</td><td>Lists diagnoses with <code>search</code>, <code>severity</code>, <code>page</code>, and <code>limit</code>. Clinicians are scoped to assigned patients.</td></tr>
+            <tr><td>GET</td><td><code>/api/diagnoses/:id</code></td><td>Admin, Clinician</td><td>Returns one diagnosis, with clinician ownership check.</td></tr>
+            <tr><td>POST</td><td><code>/api/diagnoses</code></td><td>Admin, Clinician</td><td>Creates a diagnosis for an existing patient.</td></tr>
+            <tr><td>PUT</td><td><code>/api/diagnoses/:id</code></td><td>Admin, Clinician</td><td>Updates diagnosis fields and validates severity when supplied.</td></tr>
+            <tr><td>DELETE</td><td><code>/api/diagnoses/:id</code></td><td>Admin</td><td>Deletes one diagnosis record.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="data-model">
+        <h2>7. Data Model</h2>
+        <p>
+          Data is loaded from JavaScript files when the backend process starts. IDs are generated with <code>uuid</code>, passwords are hashed with
+          <code>bcrypt</code>, and timestamps are ISO strings. The SQL file is retained as a historical relational schema, but <code>db.js</code>
+          explicitly marks database connection code as deprecated.
+        </p>
+        <div class="schema-block">
+          <h3>User</h3>
+          <pre><code>{
+  id: string,
+  username: string,
+  email: string,
+  password: bcrypt_hash,
+  role: "Admin" | "Clinician" | "Receptionist",
+  created_at: ISO_datetime
+}</code></pre>
+        </div>
+        <div class="schema-block">
+          <h3>Doctor</h3>
+          <pre><code>{
+  id: string,
+  user_id: string | null,
+  name: string,
+  specialty: string,
+  department: string,
+  contact: string | null,
+  position: string,
+  shift: "day" | "night" | "rotating",
+  created_at: ISO_datetime
+}</code></pre>
+        </div>
+        <div class="schema-block">
+          <h3>Patient</h3>
+          <pre><code>{
+  id: string,
+  first_name: string,
+  last_name: string,
+  age: number,
+  gender: string,
+  phone: string | null,
+  address: string | null,
+  doctor_id: string | null,
+  created_at: ISO_datetime
+}</code></pre>
+        </div>
+        <div class="schema-block">
+          <h3>Diagnosis</h3>
+          <pre><code>{
+  id: string,
+  patient_id: string,
+  icd_code: string,
+  description: string,
+  severity: "mild" | "moderate" | "severe",
+  created_at: ISO_datetime
+}</code></pre>
+        </div>
+        <h3>Relationships</h3>
+        <ul>
+          <li><code>Doctor.user_id</code> optionally links a doctor profile to a clinician user account.</li>
+          <li><code>Patient.doctor_id</code> links a patient to one doctor. Doctor deletion sets this value to <code>null</code>.</li>
+          <li><code>Diagnosis.patient_id</code> links a diagnosis to one patient. Patient deletion removes linked diagnoses.</li>
+          <li>Clinician scoping is derived by finding the doctor whose <code>user_id</code> matches <code>req.user.id</code>, then using that doctor's patient assignments.</li>
+        </ul>
+      </section>
+
+      <section id="auth">
+        <h2>8. Auth and Access</h2>
+        <p>
+          Authentication is username/password based. On login, the API signs a 24-hour JWT containing <code>id</code>, <code>username</code>,
+          <code>email</code>, and <code>role</code>. The frontend stores the token in localStorage and sends it with API requests.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Backend permissions</th>
+              <th>Frontend behavior</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Admin</td>
+              <td>Full doctor, patient, diagnosis, dashboard, and user-registration access.</td>
+              <td>Can access user management, create doctors, export CSV, and delete records.</td>
+            </tr>
+            <tr>
+              <td>Clinician</td>
+              <td>Can read assigned patients, read/create/update diagnoses, update patients, and view scoped dashboard stats.</td>
+              <td>Sees clinician dashboard, diagnosis workflows, and patient directory for assigned data.</td>
+            </tr>
+            <tr>
+              <td>Receptionist</td>
+              <td>Can read doctors and patients, create/update patients, and view dashboard stats. Cannot access diagnoses endpoints.</td>
+              <td>Sees intake-focused dashboard, patient registration, and doctor roster.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="warning">
+          <strong>Production hardening required:</strong>
+          <code>JWT_SECRET</code> falls back to <code>your-secret-key-change-in-production</code>. A real deployment must provide a strong secret,
+          avoid demo credentials, and move from localStorage token handling to a safer session strategy if the threat model requires it.
+        </div>
+      </section>
+
+      <section id="workflows">
+        <h2>9. Core Workflows</h2>
+        <h3>Login workflow</h3>
+        <ol>
+          <li>User submits username and password in <code>LoginPage</code>.</li>
+          <li><code>authService.login</code> posts to <code>/api/auth/login</code>.</li>
+          <li><code>authController.login</code> finds the user, compares bcrypt hash, signs JWT, and returns user summary.</li>
+          <li>Frontend stores token with <code>setToken</code> and navigates to <code>/</code>.</li>
+        </ol>
+        <h3>Doctor creation workflow</h3>
+        <ol>
+          <li>Admin opens <code>/doctors/new</code>.</li>
+          <li>Form submits doctor details plus clinician username and password.</li>
+          <li>API validates required fields, password length, and duplicate username.</li>
+          <li>Controller creates a <code>Clinician</code> user and a linked doctor profile using <code>user_id</code>.</li>
+        </ol>
+        <h3>Patient profile workflow</h3>
+        <ol>
+          <li>Frontend requests <code>GET /api/patients/:id</code>.</li>
+          <li>API verifies the token; clinicians must own the assigned doctor relationship for that patient.</li>
+          <li>Controller returns patient fields, doctor summary, and diagnosis history sorted newest first.</li>
+        </ol>
+        <h3>Dashboard workflow</h3>
+        <ol>
+          <li>Dashboard calls <code>GET /api/dashboard/stats</code>.</li>
+          <li>Admin and Receptionist receive global counts. Clinician receives counts derived from assigned patients only.</li>
+          <li>Frontend renders role-specific stat cards, quick actions, recent tables, shift coverage, and severity chart.</li>
+        </ol>
+      </section>
+
+      <section id="validation">
+        <h2>10. Validation and Errors</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Implemented validation</th>
+              <th>Response pattern</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Auth</td>
+              <td>Required username/password; user lookup; bcrypt password match; valid roles during registration.</td>
+              <td><code>400</code> missing fields, <code>401</code> invalid credentials, <code>409</code> duplicate username/email.</td>
+            </tr>
+            <tr>
+              <td>Doctors</td>
+              <td>Required profile and account fields; password length; duplicate username.</td>
+              <td><code>400</code> validation failure, <code>404</code> missing doctor, <code>409</code> duplicate username.</td>
+            </tr>
+            <tr>
+              <td>Patients</td>
+              <td>Required first name, last name, age, gender; doctor existence check on create.</td>
+              <td><code>400</code> validation failure, <code>403</code> clinician scope denial, <code>404</code> missing patient.</td>
+            </tr>
+            <tr>
+              <td>Diagnoses</td>
+              <td>Required patient, ICD code, description, severity; severity enum; patient existence on create.</td>
+              <td><code>400</code> validation failure, <code>403</code> clinician scope denial, <code>404</code> missing diagnosis.</td>
+            </tr>
+            <tr>
+              <td>Shared API</td>
+              <td>JWT must exist and verify before protected routes.</td>
+              <td><code>401</code> no token, invalid token, or expired token; <code>500</code> unexpected error.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note">
+          Frontend forms also use local validation utilities and translated error messages, but backend validation remains the authoritative enforcement point.
+        </div>
+      </section>
+
+      <section id="testing">
+        <h2>11. Testing</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Command</th>
+              <th>Current coverage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Backend</td>
+              <td><code>cd backend &amp;&amp; npm test</code></td>
+              <td>Jest is configured with <code>--passWithNoTests</code>; no backend tests were found in the inspected file list.</td>
+            </tr>
+            <tr>
+              <td>Frontend</td>
+              <td><code>cd frontend &amp;&amp; npm test</code></td>
+              <td>Vitest and Testing Library are configured. <code>App.test.jsx</code> attempts a login page render smoke test.</td>
+            </tr>
+            <tr>
+              <td>Lint</td>
+              <td><code>cd frontend &amp;&amp; npm run lint</code></td>
+              <td>ESLint is configured for React hooks and refresh rules.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="warning">
+          <strong>Observed test risk:</strong>
+          the login test expects English CareTrack copy, while the current UI dictionary defaults to Uzbek Medora Pro copy. This test may need updating before it can pass reliably.
+        </div>
+      </section>
+
+      <section id="deployment">
+        <h2>12. Build and Deployment</h2>
+        <h3>Environment variables</h3>
+        <table>
+          <thead><tr><th>Variable</th><th>Used by</th><th>Purpose</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td><code>PORT</code></td><td>Backend</td><td>Express listening port.</td><td><code>5000</code></td></tr>
+            <tr><td><code>JWT_SECRET</code></td><td>Backend</td><td>JWT signing and verification secret.</td><td><code>your-secret-key-change-in-production</code></td></tr>
+            <tr><td><code>VITE_API_BASE_URL</code></td><td>Frontend</td><td>Absolute API base URL for Axios.</td><td><code>http://127.0.0.1:5000/api</code></td></tr>
+          </tbody>
+        </table>
+        <h3>Recommended deployment shape</h3>
+        <ol>
+          <li>Deploy backend as a Node.js service with a strong <code>JWT_SECRET</code> and explicit <code>PORT</code>.</li>
+          <li>Deploy frontend static assets from <code>frontend/dist</code> to a static host.</li>
+          <li>Set <code>VITE_API_BASE_URL</code> at build time to the public API URL.</li>
+          <li>Add a durable database before using the system for real clinical records.</li>
+          <li>Configure HTTPS, strict CORS origins, monitoring, backups, audit logging, and rate limiting.</li>
+        </ol>
+      </section>
+
+      <section id="risks">
+        <h2>13. Architecture Notes</h2>
+        <div class="warning">
+          <strong>Not production-ready for real medical records:</strong>
+          data is in memory, demo credentials are visible in the UI, there is no audit trail, no durable backup, no encryption-at-rest story,
+          no rate limiting, no request validation library, and no healthcare compliance controls.
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Observation</th>
+              <th>Impact</th>
+              <th>Recommended next step</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>In-memory arrays are the active data store.</td>
+              <td>All writes disappear after restart and cannot support multi-instance deployment.</td>
+              <td>Implement a database layer, likely PostgreSQL based on the existing <code>init.sql</code> intent.</td>
+            </tr>
+            <tr>
+              <td><code>init.sql</code> does not match the active doctor fields fully.</td>
+              <td>Fields like <code>user_id</code>, <code>position</code>, and <code>shift</code> are missing from the old SQL schema.</td>
+              <td>Update schema before database migration.</td>
+            </tr>
+            <tr>
+              <td>Client decodes JWT for route gating.</td>
+              <td>Good UX, but not a security boundary.</td>
+              <td>Keep backend checks mandatory and add API tests around every protected route.</td>
+            </tr>
+            <tr>
+              <td>Patient update route allows clinicians by role, but does not scope the target patient in <code>update</code>.</td>
+              <td>A clinician may be able to update an unassigned patient if they know the ID.</td>
+              <td>Add the same clinician ownership check used by <code>getById</code>.</td>
+            </tr>
+            <tr>
+              <td>Diagnosis create/update does not fully enforce clinician patient ownership.</td>
+              <td>A clinician could create or move a diagnosis for an unassigned patient.</td>
+              <td>Validate assigned-patient ownership on create and update.</td>
+            </tr>
+            <tr>
+              <td>CORS allows all origins by default.</td>
+              <td>Acceptable for local development, too broad for production.</td>
+              <td>Restrict CORS to approved frontend origins.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="sources">
+        <h2>14. Source File Map</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Role in architecture</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>backend/src/app.js</code></td><td>Express app composition, middleware, health check, route registration, error handler.</td></tr>
+            <tr><td><code>backend/src/server.js</code></td><td>Server startup and port binding.</td></tr>
+            <tr><td><code>backend/src/config/index.js</code></td><td>Environment loading and runtime config.</td></tr>
+            <tr><td><code>backend/src/routes/*.js</code></td><td>REST endpoint definitions and middleware chains.</td></tr>
+            <tr><td><code>backend/src/controllers/*.js</code></td><td>Business logic for authentication, dashboard, doctors, patients, diagnoses.</td></tr>
+            <tr><td><code>backend/src/middleware/authMiddleware.js</code></td><td>JWT extraction and verification.</td></tr>
+            <tr><td><code>backend/src/middleware/roleMiddleware.js</code></td><td>Role-based route authorization.</td></tr>
+            <tr><td><code>backend/src/data/users.js</code></td><td>Seeded users and bcrypt demo passwords.</td></tr>
+            <tr><td><code>backend/src/data/doctors.js</code></td><td>Seeded doctors, clinician links, position and shift values.</td></tr>
+            <tr><td><code>backend/src/data/patients.js</code></td><td>Seeded patient records and doctor assignments.</td></tr>
+            <tr><td><code>backend/src/data/diagnoses.js</code></td><td>Seeded ICD diagnosis records and severities.</td></tr>
+            <tr><td><code>backend/src/data/db.js</code></td><td>Deprecated database connection placeholder documenting the active in-memory storage approach.</td></tr>
+            <tr><td><code>backend/src/data/init.sql</code></td><td>Historical or planned PostgreSQL schema, not active at runtime.</td></tr>
+            <tr><td><code>frontend/src/main.jsx</code></td><td>React root mounting.</td></tr>
+            <tr><td><code>frontend/src/App.jsx</code></td><td>Provider composition and router rendering.</td></tr>
+            <tr><td><code>frontend/src/router/index.jsx</code></td><td>Route hierarchy and page-level role gates.</td></tr>
+            <tr><td><code>frontend/src/services/api.js</code></td><td>Axios instance, token header, 401 behavior, API base URL.</td></tr>
+            <tr><td><code>frontend/src/services/*Service.js</code></td><td>Resource-specific API wrappers.</td></tr>
+            <tr><td><code>frontend/src/utils/auth.js</code></td><td>Token persistence, token decoding, and role helper functions.</td></tr>
+            <tr><td><code>frontend/src/i18n/LanguageContext.jsx</code></td><td>Uzbek and Russian dictionaries and language state.</td></tr>
+            <tr><td><code>frontend/src/pages/*.jsx</code></td><td>Screen-level workflows for login, dashboard, doctors, patients, diagnoses, users, and schedule.</td></tr>
+            <tr><td><code>frontend/src/components/*.jsx</code></td><td>Shared UI components for navigation, tables, forms, toast, pagination, and access denial.</td></tr>
+            <tr><td><code>frontend/src/index.css</code>, <code>frontend/tailwind.config.js</code></td><td>Global styling, Tailwind setup, design tokens, and premium panel/input/button classes.</td></tr>
+          </tbody>
+        </table>
+        <p class="source">
+          Documentation generated by repository inspection of <code>/home/user/CareTrack</code> and comparison with the supplied reference file
+          <code>/home/user/Downloads/Telegram Desktop/dcd.html</code>.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      CareTrack Full Stack Architecture Documentation. Generated for the current repository state on June 7, 2026.
+    </footer>
+  </div>
+</body>
+</html>

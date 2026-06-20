@@ -1,0 +1,15 @@
+node_modules/
+/.env
+/dist
+/build
+/coverage
+/.vite
+/.idea
+.DS_Store
+/frontend/node_modules
+/backend/node_modules
+/frontend/dist
+/frontend/.cache
+.env.local
+.local.env
+.vscode/
